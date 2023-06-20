@@ -7,11 +7,15 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 )
 
 var redirects int
 
 func main() {
+	// Set the concurrency limit
+	concurrencyLimit := 50
+
 	// Initialize the number of redirects to 0
 	redirects = 0
 
@@ -44,13 +48,32 @@ func main() {
 	// Set the log output to the file
 	log.SetOutput(logFile)
 
+	tasks := make(chan string, concurrencyLimit)
+	var wg sync.WaitGroup
+
+	// Start worker goroutines
+	for i := 0; i < concurrencyLimit; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for task := range tasks {
+				checkHasRedirect(task)
+			}
+		}()
+	}
+
 	for key, line := range lines {
 		fmt.Println("line" + strconv.Itoa(key))
+
 		if len(line) > 0 {
 			url := line[0]
-			checkHasRedirect(url)
+			tasks <- url
 		}
 	}
+
+	close(tasks)
+
+	wg.Wait()
 
 	log.Println("Total redirects:", redirects)
 }

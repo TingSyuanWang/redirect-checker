@@ -19,3 +19,13 @@
 
 # Go workspace file
 go.work
+
+# IDE
+.idea/
+.vscode/
+
+# Log
+log.txt
+
+# Import file
+urls.csv
